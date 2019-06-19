@@ -1,0 +1,65 @@
+clear;
+clc;
+
+%% 8919??? 5080??
+
+%% ????
+load('ppi_network.mat');
+load('g_p_network.mat');
+load('phenotype_network.mat');
+
+%% ??????
+gene_num = size(ppi_network, 1);
+
+%% normalize ?? W
+W = ppi_network;
+D = diag(sum(ppi_network)); % D: ??? ???? D(i,i) is the sum of row i of W . 
+
+%% ?????????ppi_network ?????????
+for i = 1:gene_num
+    for j = 1:gene_num
+        W(i,j) = W(i,j)/sqrt(D(i,i)*D(j,j)); 
+    end
+end
+
+%% ????ID???, ?????????data_ph
+data_ph = phenotype_network(:,2:5081);
+
+%% ?????????index
+for i = 1:5080 
+    if strcmp(phenotype_name{i},'APERT SYNDROME') == 1
+        num = i; % num -> index
+        break;
+    end
+end
+
+query_phenotype = phenotype_name{num}; 
+
+phenotype_array = data_ph(num,:); % ???????????
+temp = sort(phenotype_array);  % ????
+
+%% ???15?????15?????
+
+similar_query_phenotype = find(phenotype_array > temp(5064));
+
+% ??? num ??
+similar_query_phenotype(similar_query_phenotype == num)=[]; 
+
+% ??????????????15????
+useful_p = find(sum(g_p_network,1)>0);
+phenotype_index = intersect(similar_query_phenotype, useful_p);
+
+for i = 1:size(phenotype_index,2)
+    gene_index(i) = find( g_p_network(:,phenotype_index(i))>0 );
+end
+
+F = zeros(gene_num,1); % F???
+F(gene_index) = 1;
+Y = F; 
+t = 50;
+alpha = 0.9;
+for i = 1:t
+    F = alpha * (W * F) + (1-alpha) * Y;
+end
+[m,p] = max(F);
+gene_name{p}
